@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garbage Monitoring</title>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background-color: #0A1A0F; 
+    color: #EAEAEA; 
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    transition: background-color 0.5s ease-in-out;
+
+    
+    background-image: url('https://www.montereyherald.com/wp-content/uploads/2020/10/MCH-L-TRASH-1101-01.jpg?w=527');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6); 
+    z-index: -1;
+}
+
+
+.title {
+    font-size: 40px;
+    font-weight: bold;
+    color: #B6FF33; 
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0px 0px 15px rgba(182, 255, 51, 1), 0px 0px 30px rgba(182, 255, 51, 0.8);
+    margin-bottom: 25px;
+    animation: glow 1.5s infinite alternate;
+}
+
+
+@keyframes glow {
+    0% { text-shadow: 0px 0px 10px rgba(182, 255, 51, 0.8); }
+    100% { text-shadow: 0px 0px 25px rgba(182, 255, 51, 1); }
+}
+
+
+.title-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+
+.container {
+    max-width: 450px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(10px);
+    box-shadow: 0px 0px 25px rgba(57, 255, 20, 0.3); 
+    border-radius: 15px;
+    border: 2px solid rgba(57, 255, 20, 0.2);
+    animation: fadeIn 0.5s ease-in-out;
+    position: relative;
+}
+
+
+input {
+    width: 90%;
+    padding: 14px;
+    margin: 12px 0;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 2px solid #39FF14; 
+    transition: all 0.3s ease-in-out;
+}
+
+input:focus {
+    border-color: #A7FF57;
+    box-shadow: 0px 0px 15px rgba(167, 255, 87, 0.8);
+}
+
+/* Buttons */
+button {
+    width: 90%;
+    padding: 14px;
+    font-size: 17px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    background: linear-gradient(145deg, #006400, #A7FF57); 
+    transition: all 0.3s ease-in-out;
+    position: relative;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: linear-gradient(145deg, #A7FF57, #006400);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+
+a {
+    color: #39FF14; 
+    text-decoration: none;
+    font-weight: bold;
+    position: relative;
+    transition: color 0.3s ease-in-out;
+}
+
+a:hover {
+    color: #A7FF57; 
+}
+
+a::after {
+    content: "";
+    width: 0%;
+    height: 2px;
+    background: #A7FF57;
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    transition: all 0.3s ease-in-out;
+}
+
+a:hover::after {
+    width: 100%;
+    left: 0%;
+}
+
+
+.hidden {
+    display: none;
+}
+
+
+.full {
+    color: #FF6B6B; 
+    font-weight: bold;
+}
+
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #0A1A0F;
+            color: #5ecc5e;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        canvas {
+            background: #8ea18e;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #dustbinCount, #recyclePercentage {
+        color:  #006400;
+        font-weight: bold;
+        }
+        h2, h1 {
+            color:  #5ecc5e;
+            font-weight: bold;
+        }
+        #fillLevel , #status {
+        color:  #5ecc5e;
+        font-weight: bold;
+        }
+        
+    </style>
+</head>
+<body>
+       <div class="title-container">
+        <h1 class="title">TrashTrack</h1>
+    </div>
+    
+    <div id="registerScreen" class="container hidden">
+        <h2>Register</h2>
+        <input type="text" id="regDriverName" placeholder="Driver Name">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+    </div>
+
+        <div id="loginScreen" class="container">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p>Don't have an account? <a href="#" onclick="showRegister()">Register</a></p>
+    </div>
+
+    
+    <div id="mainScreen" class="container hidden">
+        <h1>Smart Garbage Monitor</h1>
+        <p id="fillLevel">Fill Level: 0%</p>
+        <p id="status">Status: Empty</p>
+        <button onclick="createDustbin()">Create Dustbin</button>
+        <button onclick="logout()">Logout</button>
+        <div id="dustbins"></div>
+        <h2>Dustbin Fill Analysis</h2>
+        <canvas id="dustbinChart"></canvas>
+        <p id="dustbinCount">Required Dustbins: -</p>
+        <p id="recyclePercentage">Recycling Percentage: -</p>
+    </div>
+    
+
+
+    <script>
+        const socket = io("http://localhost:3000");
+        let authToken = localStorage.getItem("token");
+
+        function showLogin() {
+            $("#registerScreen, #mainScreen").hide();
+            $("#loginScreen").show();
+        }
+
+        function showRegister() {
+            $("#loginScreen, #mainScreen").hide();
+            $("#registerScreen").show();
+        }
+
+        function showMain() {
+            $("#registerScreen, #loginScreen").hide();
+            $("#mainScreen").show();
+        }
+
+        function register() {
+    const driverName = $("#regDriverName").val()?.trim();
+    const email = $("#regEmail").val()?.trim();
+    const password = $("#regPassword").val()?.trim();
+
+    
+    if (!driverName || !email || !password) {
+        alert("All fields are required! Please fill in every field.");
+        return;
+    }
+
+    $.ajax({
+        url: "http://localhost:3000/register",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ driverName, email, password }),
+        success: function(response) {
+            alert("Registered Successfully! Redirecting to Login.");
+            showLogin();
+        },
+        error: function(err) {
+            const errorMessage = err.responseJSON?.error || "Registration failed! Please try again.";
+            alert(errorMessage);
+        }
+    });
+}
+
+
+function login() {
+    const email = $("#loginEmail").val().trim();
+    const password = $("#loginPassword").val().trim();
+
+    if (!email || !password) {
+        alert("Both fields are required!");
+        return;
+    }
+
+    $.ajax({
+        url: "http://localhost:3000/login",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ email, password }),
+        success: function(response) {
+            alert("Login successful! Redirecting...");
+            localStorage.setItem("token", response.token);
+            showMain();
+        },
+        error: function(err) {
+            alert(err.responseJSON?.error || "Login failed! Try again.");
+        }
+    });
+}
+
+function logout() {
+    localStorage.removeItem("token");
+
+    
+    fetch("http://localhost:3000/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    }).then(() => {
+        location.reload();     }).catch(error => console.error("Logout Error:", error));
+}
+const ctx = document.getElementById('dustbinChart').getContext('2d');
+        let chartData = {
+            labels: [],
+            datasets: [{
+                label: "Dustbins Needed",
+                data: [],
+                borderColor: "green",
+                backgroundColor: "rgba(0, 255, 0, 0.2)",
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 5,
+                pointBackgroundColor: "green"
+            }]
+        };
+
+        const dustbinChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: { 
+                responsive: true, 
+                scales: { 
+                    x: { title: { display: true, text: "Average Recycling Percentage (%)" } },
+                    y: { beginAtZero: true, title: { display: true, text: "Required Dustbins" } } 
+                }
+            }
+        });
+
+        let fillData = {};  
+
+        function updateCalculations(fillPercentage) {
+            let binsNeeded = Math.ceil(100 / fillPercentage);
+            let recyclePercentage = (fillPercentage === 100) ? 50 : (100 - fillPercentage) / 2;
+
+            
+            if (!fillData[fillPercentage]) {
+                fillData[fillPercentage] = { count: 1, totalRecycle: recyclePercentage };
+            } else {
+                fillData[fillPercentage].count += 1;
+                fillData[fillPercentage].totalRecycle += recyclePercentage;
+            }
+
+            
+            let totalOccurrences = Object.values(fillData).reduce((sum, data) => sum + data.count, 0);
+            let totalRecycling = Object.values(fillData).reduce((sum, data) => sum + data.totalRecycle, 0);
+            let avgRecycle = (totalRecycling / totalOccurrences).toFixed(2);
+
+            document.getElementById("dustbinCount").innerText = `Required Dustbins: ${binsNeeded}`;
+            document.getElementById("recyclePercentage").innerText = `Recycling Percentage: ${recyclePercentage.toFixed(2)}%`;
+
+            
+            chartData.labels.push(`${avgRecycle}%`);
+            chartData.datasets[0].data.push(binsNeeded);
+
+            dustbinChart.update();
+        }
+
+        socket.on("update", (data) => {
+            if (data.fillPercentage !== undefined) {
+                updateCalculations(data.fillPercentage);
+            }
+        });
+function createDustbin() {
+    const dustbinId = prompt("Enter a name for the new dustbin:");
+    
+    if (!dustbinId || dustbinId.trim() === "") {
+        alert("Dustbin name cannot be empty.");
+        return;
+    }
+
+     
+    $.post("http://localhost:3000/createDustbin", { dustbinId })
+        .done(response => {
+            alert("Dustbin Created Successfully!");
+            addDustbinToUI(dustbinId);
+        })
+        .fail(err => alert(err.responseJSON?.error || "Failed to create dustbin."));
+}
+
+        function addDustbinToUI(dustbinId) {
+            $("#dustbins").append(`
+                <div id="${dustbinId}" class="dustbin-container">
+                    <h3>${dustbinId}</h3>
+                    <p>Fill Level: <span id="fill-${dustbinId}">0%</span></p>
+                    <p>Status: <span id="status-${dustbinId}">Empty</span></p>
+                </div>
+            `);
+        }
+
+
+        socket.on("update", (data) => {
+            $("#fillLevel").text(`Fill Level: ${data.fillPercentage}%`);
+            $("#status").html(data.isFull ? `<span class="full">Status: Full</span>` : "Status: Not Full");
+        });
+        socket.on("update", (data) => {
+            if (data.dustbinId) {
+                $(`#fill-${data.dustbinId}`).text(`${data.fillPercentage}%`);
+                $(`#status-${data.dustbinId}`).text(data.isFull ? "Full" : "Not Full");
+            }
+        });
+ 
+        if (authToken) showMain();
+    </script>
+
+</body>
+</html>
