@@ -92,7 +92,20 @@ async function sendEmail(userEmail) {
     const user = await User.findOne({ email: userEmail });
     if (!user) return;
 
-    
+    const brevoApiKey = "";
+
+    axios.post("", {
+        sender: { name: "TrashTrack", email: "sadribshaiyanislam@gmail.com" },
+        to: [{ email: user.email, name: user.driverName }],
+        subject: "🚨 Trash Bin Full Alert 🚨",
+        textContent: `Hello ${user.driverName},\n\nYour trash bin is full! Please empty it to ensure efficient waste management.\n\nBest regards,\nTrashTrack System`
+    }, {
+        headers: { "api-key": brevoApiKey, "Content-Type": "application/json" }
+    }).then(() => {
+        console.log("📧 Email alert sent successfully to:", user.email);
+    }).catch(error => {
+        console.error("Email Error:", error);
+    });
 }
 
 app.post('/register', async (req, res) => {
